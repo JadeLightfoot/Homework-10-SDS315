@@ -1,0 +1,147 @@
+---
+title: "Homework 10 SDS315"
+author: "Jade Lightfoot (jsl3652)"
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+---
+```{r echo=FALSE , message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(fig.height=6, fig.width=6, warning=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60))
+
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(kableExtra))
+library(tidyverse)
+library(ggplot2)
+library(mosaic)
+library(dplyr)
+library(kableExtra)
+library(effectsize)
+
+redline <- read_csv("/Users/jadelightfoot/Downloads/redlining.csv")
+groceries <- read_csv("/Users/jadelightfoot/Downloads/groceries.csv")
+```
+
+Github Repository: https://github.com/JadeLightfoot/Homework-10-SDS315 
+
+# **Problem 1: Redlining**
+
+***
+
+### **Question**
+The question is whether there is an association between the number of FAIR policies and the racial/ethnic composition of a ZIP Code. 
+
+
+### **Approach**
+To answer this question I created a linear regression model that assess whether there is a clear association between FAIR policies and the racial composition of a zip code or not. 
+
+### **Results**
+```{r echo= FALSE, results='hide'}
+redlinelm <- lm(policies~ minority + age + fire + income, data = redline)
+summary(redlinelm)
+
+coef(redlinelm)
+redlineconfint<-confint(redlinelm)
+
+```
+
+The following graph shows the relationship just between policies and minority, suggesting a positive association. Meaning the more FAIR policies placed and the more minority percentage means that less people are buying private market insurance plans. 
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ggplot(redline, aes(x=policies, y=minority)) + geom_point() + geom_smooth(method='lm')
+```
+
+
+Based on the following coefficients when running a linear regression while adjusting for fire, age, and income all except income suggest a positive association in regards to the number of FAIR policies. To test for statistical significance in these associations I conducted a confidence interval, which is shown in the table below. 
+
+```{r echo= FALSE}
+kable(redlineconfint, "html") %>%
+  kable_styling(bootstrap_options = "striped", full_width = F) 
+
+```
+
+### **Conclusion**
+In interpretation of the confidence intervals we can conclude that minority and fire are statistically significant variables due to zero not being included in their confidence intervals. This means that for FAIR policies the percentage of minority residents has a positive association when holding all variables constant. Answering the original question when minority percentages increase in a ZIP code so does FAIR policies, and private market rates of purchase lower per capita in turn. 
+
+***
+
+# **Problem 2: Grocery Store Prices**
+
+***
+
+### **Part A**
+
+```{r echo=FALSE}
+store_avgprice <- aggregate(Price~Store, data= groceries, FUN= mean)
+ggplot(store_avgprice, aes(x=Store, y= Price)) + geom_bar(stat = "identity", fill= "darkseagreen3", color="darkseagreen") + labs(title = "Mean Price of Products Across Stores ", y= "Average Price ($)", x= "Store") + theme_minimal()  + coord_flip()
+```
+
+The plot above shows a bar plot of the average price of multiple products at each store within the data set. Exemplifying differences across different stores in Houston, Austin, and Fort Worth. The vertical axis representing different stores and the horizontal axis representing price. 
+
+
+### **Part B**
+
+```{r echo=FALSE}
+store_counts <- aggregate(Store ~ Product, data = groceries, FUN = function(x) length(x))
+
+ggplot(store_counts, aes(x=Product, y= Store)) + geom_bar(stat = "identity", fill= "lightskyblue2", color="lightskyblue3") + labs(title = "Amount of Products Sold at Stores ", y= "Count", x= "Product") + theme_minimal()  + coord_flip()
+```
+
+This plot shows a bar graph that displays product and the number of stores that sell that certain product. The horizontal axis represents the count, which is the number of stores that sell a product, and the vertical axis represents the name of the product. 
+
+
+### **Part C**
+
+```{r echo=FALSE , results='hide'}
+product_type_lm <- lm(Price ~ Product + Type, data= groceries)
+confint(product_type_lm, level=0.95)
+```
+
+Compared with ordinary grocery stores (like Albertsons, HEB, or Krogers), convenience stores charge somewhere between 0.41 and 0.95 dollars less for the same product.
+
+
+### **Part D**
+
+```{r echo=FALSE , results='hide'}
+product_store_lm <- lm(Price ~ Product + Store, data = groceries)
+store_coefficients <- coef(product_store_lm)
+store_coefficients <- store_coefficients[grep("^Store", names(store_coefficients))]
+sorted_coefficients <- sort(store_coefficients)
+
+highest_stores <- names(sorted_coefficients)[(length(sorted_coefficients)-1):length(sorted_coefficients)]
+lowest_stores <- names(sorted_coefficients)[1:2]
+print(highest_stores)
+print(lowest_stores)
+```
+
+The stores that are charging the lowest price when comparing the same product is Walmart and Kroger Fresh Fare. The stores that are charging the highest price when comparing the same product is Wheatsville Food Co-Op and Whole Foods. 
+
+
+### **Part E**
+
+```{r echo= FALSE , results='hide'}
+
+print(store_coefficients)
+
+```
+
+From my evidence Central Market has a lower price (-0.57) than H-E-B (-0.65). If comparing Central Market and HEB to other store we could possibly see that the two stores are closer in price than we originally inferred. This could suggest that HEB and Central Market may have distinct pricing strategies, which could require more statistical analysis.  
+
+
+### **Part F**
+
+```{r echo=FALSE , results='hide'} 
+groceries <- groceries %>%
+  mutate(Income10K = Income/10000)
+
+product_income_lm <- lm(Price ~ Product + Income10K, data = groceries)
+coef(product_income_lm)
+standardize_parameters(product_income_lm)
+```
+
+Because of the negative sign on Income10K it is suggested that consumers in poorer areas do pay less for the same product on average. 
+A one-standard deviation increase in the income of a ZIP code seems to be associated with
+a -0.03 standard-deviation change in the price that consumers in that ZIP code expect to pay for
+the same product. 
+
+
